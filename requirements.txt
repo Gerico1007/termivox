@@ -1,0 +1,5 @@
+Vosk
+xdotool
+pyaudio
+numpy
+speechrecognition
