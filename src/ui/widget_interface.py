@@ -63,27 +63,54 @@ class WidgetInterface:
         Create and configure tkinter window.
         """
         self._root = tk.Tk()
-        self._root.title("Termivox Toggle")
+
+        # Remove window decorations and make it unfocusable
+        # This prevents the widget from EVER stealing focus
+        self._root.overrideredirect(True)
+
         self._root.geometry(f"{self.size[0]}x{self.size[1]}+{self.position[0]}+{self.position[1]}")
 
         if self.always_on_top:
             self._root.attributes('-topmost', True)
 
-        # Prevent window from stealing focus when clicked
-        # This keeps cursor in your text editor!
+        # Make window stay on top and never grab keyboard focus
         try:
-            self._root.attributes('-type', 'utility')  # Linux: utility window doesn't grab focus
+            self._root.attributes('-type', 'utility')
         except:
-            pass  # If not supported, continue anyway
+            pass
+
+        # Add a title bar manually since we removed decorations
+        title_frame = tk.Frame(self._root, bg='#333333', cursor='fleur')
+        title_frame.pack(fill='x', side='top')
+
+        title_label = tk.Label(
+            title_frame,
+            text="Termivox",
+            bg='#333333',
+            fg='white',
+            font=('Arial', 9),
+            pady=2
+        )
+        title_label.pack(side='left', padx=5)
+
+        # Make window draggable
+        title_frame.bind('<Button-1>', self._start_drag)
+        title_frame.bind('<B1-Motion>', self._on_drag)
+        title_label.bind('<Button-1>', self._start_drag)
+        title_label.bind('<B1-Motion>', self._on_drag)
+
+        # Main content frame
+        content_frame = tk.Frame(self._root)
+        content_frame.pack(fill='both', expand=True)
 
         # Configure grid
-        self._root.columnconfigure(0, weight=1)
-        self._root.rowconfigure(0, weight=1)
-        self._root.rowconfigure(1, weight=2)
+        content_frame.columnconfigure(0, weight=1)
+        content_frame.rowconfigure(0, weight=1)
+        content_frame.rowconfigure(1, weight=2)
 
         # Status label
         self._status_label = tk.Label(
-            self._root,
+            content_frame,
             text="",
             font=("Arial", 14, "bold"),
             pady=10
@@ -92,52 +119,45 @@ class WidgetInterface:
 
         # Toggle button
         self._toggle_button = tk.Button(
-            self._root,
+            content_frame,
             text="TOGGLE",
             command=self._on_button_click,
             font=("Arial", 16, "bold"),
-            cursor="hand2"
+            cursor="hand2",
+            takefocus=0  # Never receive keyboard focus
         )
         self._toggle_button.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
         # Set initial state
         self._update_ui(self.controller.get_state())
 
-        # Handle window close
-        self._root.protocol("WM_DELETE_WINDOW", self._on_close)
+        # Handle window close (right-click to close since no decorations)
+        self._root.bind('<Button-3>', lambda e: self._on_close())
+
+        # Drag variables
+        self._drag_x = 0
+        self._drag_y = 0
+
+    def _start_drag(self, event):
+        """Start dragging the window."""
+        self._drag_x = event.x
+        self._drag_y = event.y
+
+    def _on_drag(self, event):
+        """Handle window dragging."""
+        x = self._root.winfo_x() + event.x - self._drag_x
+        y = self._root.winfo_y() + event.y - self._drag_y
+        self._root.geometry(f"+{x}+{y}")
 
     def _on_button_click(self):
         """
         Called when toggle button is clicked.
-        Restores focus to previous window after toggling.
+
+        With overrideredirect, this window can't steal focus,
+        so cursor stays exactly where it was!
         """
         try:
-            # Get currently focused window before toggle
-            import subprocess
-            try:
-                result = subprocess.run(
-                    ['xdotool', 'getwindowfocus'],
-                    capture_output=True,
-                    text=True,
-                    timeout=1
-                )
-                previous_window = result.stdout.strip()
-            except:
-                previous_window = None
-
-            # Toggle state
             self.controller.toggle()
-
-            # Restore focus to previous window (keep cursor position)
-            if previous_window and previous_window.isdigit():
-                try:
-                    subprocess.run(
-                        ['xdotool', 'windowfocus', previous_window],
-                        timeout=1
-                    )
-                except:
-                    pass  # If focus restoration fails, no big deal
-
         except Exception as e:
             print(f"[Widget] Error toggling: {e}")
 
