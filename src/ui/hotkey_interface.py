@@ -54,9 +54,19 @@ class HotkeyInterface:
             Dictionary mapping hotkey to callback
         """
         # Convert common names to pynput format
-        # Split on '+' and wrap each key in angle brackets
+        # Modifier keys (ctrl, alt, shift, cmd) need angle brackets
+        # Regular keys (letters, numbers) do NOT use angle brackets
+        modifiers = {'ctrl', 'alt', 'shift', 'cmd', 'win', 'super'}
+
         keys = key_combo.lower().replace(" ", "").split('+')
-        formatted = '+'.join(f'<{key}>' for key in keys)
+        formatted_keys = []
+        for key in keys:
+            if key in modifiers:
+                formatted_keys.append(f'<{key}>')
+            else:
+                formatted_keys.append(key)
+
+        formatted = '+'.join(formatted_keys)
         return {formatted: self._on_hotkey_press}
 
     def _on_hotkey_press(self):
