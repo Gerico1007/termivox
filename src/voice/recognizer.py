@@ -16,6 +16,7 @@ class Recognizer:
     def __init__(self, lang="en", auto_space=True):
         self.lang = lang  # Store the language for use in listen()
         self.auto_space = auto_space  # Option to add space after each yielded text
+        self._paused = False  # Toggle control: when True, voice recognition is muted
         # Map language codes to model paths
         model_paths = {
             "en": "voice_models/vosk-model-small-en-us-0.15",
@@ -139,6 +140,11 @@ class Recognizer:
             if stop_flag['stop']:
                 break
             data = self.stream.read(4000, exception_on_overflow=False)
+
+            # Skip processing if paused (toggle control)
+            if self._paused:
+                continue
+
             if self.recognizer.AcceptWaveform(data):
                 result = json.loads(self.recognizer.Result())
                 text = result.get("text", "")
@@ -186,6 +192,29 @@ class Recognizer:
                 if self.auto_space and final_text not in punctuation_map.values() and final_text not in edit_map.values():
                     final_text += " "
                 yield final_text
+
+    def pause(self):
+        """
+        Pause voice recognition (mute).
+        Audio stream continues running but no processing occurs.
+        """
+        self._paused = True
+
+    def resume(self):
+        """
+        Resume voice recognition (unmute).
+        Audio processing resumes immediately.
+        """
+        self._paused = False
+
+    def is_paused(self):
+        """
+        Check if voice recognition is currently paused.
+
+        Returns:
+            True if paused, False if active
+        """
+        return self._paused
 
     def close(self):
         self.stream.stop_stream()

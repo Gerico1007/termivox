@@ -1,0 +1,33 @@
+{
+  "interfaces": {
+    "hotkey": {
+      "enabled": true,
+      "key": "ctrl+alt+v"
+    },
+    "tray": {
+      "enabled": true
+    },
+    "widget": {
+      "enabled": false,
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "size": {
+        "width": 200,
+        "height": 100
+      },
+      "always_on_top": true
+    },
+    "hardware": {
+      "enabled": false,
+      "device": null,
+      "device_type": "usb"
+    }
+  },
+  "voice": {
+    "language": "en",
+    "auto_space": true
+  },
+  "audio_feedback": false
+}
