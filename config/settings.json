@@ -5,10 +5,10 @@
       "key": "ctrl+alt+v"
     },
     "tray": {
-      "enabled": true
+      "enabled": false
     },
     "widget": {
-      "enabled": false,
+      "enabled": true,
       "position": {
         "x": 100,
         "y": 100

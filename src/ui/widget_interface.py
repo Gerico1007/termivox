@@ -69,6 +69,13 @@ class WidgetInterface:
         if self.always_on_top:
             self._root.attributes('-topmost', True)
 
+        # Prevent window from stealing focus when clicked
+        # This keeps cursor in your text editor!
+        try:
+            self._root.attributes('-type', 'utility')  # Linux: utility window doesn't grab focus
+        except:
+            pass  # If not supported, continue anyway
+
         # Configure grid
         self._root.columnconfigure(0, weight=1)
         self._root.rowconfigure(0, weight=1)
@@ -102,9 +109,35 @@ class WidgetInterface:
     def _on_button_click(self):
         """
         Called when toggle button is clicked.
+        Restores focus to previous window after toggling.
         """
         try:
+            # Get currently focused window before toggle
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ['xdotool', 'getwindowfocus'],
+                    capture_output=True,
+                    text=True,
+                    timeout=1
+                )
+                previous_window = result.stdout.strip()
+            except:
+                previous_window = None
+
+            # Toggle state
             self.controller.toggle()
+
+            # Restore focus to previous window (keep cursor position)
+            if previous_window and previous_window.isdigit():
+                try:
+                    subprocess.run(
+                        ['xdotool', 'windowfocus', previous_window],
+                        timeout=1
+                    )
+                except:
+                    pass  # If focus restoration fails, no big deal
+
         except Exception as e:
             print(f"[Widget] Error toggling: {e}")
 
