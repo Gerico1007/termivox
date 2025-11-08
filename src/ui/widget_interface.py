@@ -79,19 +79,20 @@ class WidgetInterface:
         except:
             pass
 
-        # Add a title bar manually since we removed decorations
-        title_frame = tk.Frame(self._root, bg='#333333', cursor='fleur')
+        # Minimal title bar
+        title_frame = tk.Frame(self._root, bg='#1a1a1a', cursor='fleur', height=24)
         title_frame.pack(fill='x', side='top')
+        title_frame.pack_propagate(False)
 
         title_label = tk.Label(
             title_frame,
-            text="Termivox",
-            bg='#333333',
-            fg='white',
-            font=('Arial', 9),
-            pady=2
+            text="TERMIVOX",
+            bg='#1a1a1a',
+            fg='#888888',
+            font=('Helvetica', 8, 'normal'),
+            pady=4
         )
-        title_label.pack(side='left', padx=5)
+        title_label.pack(side='left', padx=8)
 
         # Make window draggable
         title_frame.bind('<Button-1>', self._start_drag)
@@ -99,34 +100,33 @@ class WidgetInterface:
         title_label.bind('<Button-1>', self._start_drag)
         title_label.bind('<B1-Motion>', self._on_drag)
 
-        # Main content frame
-        content_frame = tk.Frame(self._root)
+        # Main content frame - minimal design
+        content_frame = tk.Frame(self._root, bg='#2a2a2a')
         content_frame.pack(fill='both', expand=True)
 
-        # Configure grid
-        content_frame.columnconfigure(0, weight=1)
-        content_frame.rowconfigure(0, weight=1)
-        content_frame.rowconfigure(1, weight=2)
-
-        # Status label
-        self._status_label = tk.Label(
-            content_frame,
-            text="",
-            font=("Arial", 14, "bold"),
-            pady=10
-        )
-        self._status_label.grid(row=0, column=0, sticky="ew")
-
-        # Toggle button
+        # Single toggle button (status shown via color)
         self._toggle_button = tk.Button(
             content_frame,
-            text="TOGGLE",
+            text="",
             command=self._on_button_click,
-            font=("Arial", 16, "bold"),
-            cursor="hand2",
-            takefocus=0  # Never receive keyboard focus
+            font=("Helvetica", 11, 'bold'),
+            cursor='hand2',
+            takefocus=0,
+            relief='flat',
+            borderwidth=0,
+            highlightthickness=0
         )
-        self._toggle_button.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        self._toggle_button.pack(fill='both', expand=True, padx=1, pady=1)
+
+        # Status indicator (small dot in corner)
+        self._status_label = tk.Label(
+            content_frame,
+            text="●",
+            font=("Helvetica", 10),
+            bg='#2a2a2a',
+            fg='#ffffff'
+        )
+        self._status_label.place(relx=0.95, rely=0.1, anchor='ne')
 
         # Set initial state
         self._update_ui(self.controller.get_state())
@@ -176,6 +176,7 @@ class WidgetInterface:
     def _update_ui(self, state: ToggleState):
         """
         Update widget appearance based on state.
+        Minimal design - colors indicate status.
 
         Args:
             state: Current ToggleState
@@ -184,28 +185,26 @@ class WidgetInterface:
             return
 
         if state == ToggleState.ACTIVE:
-            # Green theme for ACTIVE
-            self._status_label.config(
-                text="🎤 ACTIVE (Listening)",
-                bg="#4CAF50",  # Material green
-                fg="white"
-            )
+            # Minimal green theme for ACTIVE
             self._toggle_button.config(
-                bg="#66BB6A",
-                activebackground="#81C784",
-                fg="white"
+                text="LISTENING",
+                bg="#27ae60",  # Professional green
+                activebackground="#2ecc71",
+                fg="#ffffff"
+            )
+            self._status_label.config(
+                fg="#27ae60"  # Green dot
             )
         else:
-            # Red theme for PAUSED
-            self._status_label.config(
-                text="🔇 PAUSED (Muted)",
-                bg="#F44336",  # Material red
-                fg="white"
-            )
+            # Minimal red theme for PAUSED
             self._toggle_button.config(
-                bg="#EF5350",
-                activebackground="#E57373",
-                fg="white"
+                text="MUTED",
+                bg="#555555",  # Neutral gray
+                activebackground="#666666",
+                fg="#999999"
+            )
+            self._status_label.config(
+                fg="#555555"  # Gray dot
             )
 
     def _on_close(self):
