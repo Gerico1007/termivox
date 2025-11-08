@@ -54,8 +54,9 @@ class HotkeyInterface:
             Dictionary mapping hotkey to callback
         """
         # Convert common names to pynput format
-        normalized = key_combo.lower().replace(" ", "")
-        formatted = f"<{normalized}>"
+        # Split on '+' and wrap each key in angle brackets
+        keys = key_combo.lower().replace(" ", "").split('+')
+        formatted = '+'.join(f'<{key}>' for key in keys)
         return {formatted: self._on_hotkey_press}
 
     def _on_hotkey_press(self):
