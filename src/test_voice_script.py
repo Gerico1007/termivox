@@ -4,7 +4,7 @@ A simple script to test the Recognizer class with both English and French langua
 You can run this script with a --lang argument (en or fr) to test voice recognition and command mapping.
 """
 import argparse
-from voice.recognizer import Recognizer
+from termivox.voice.recognizer import Recognizer
 
 def main():
     parser = argparse.ArgumentParser()

@@ -11,6 +11,7 @@ Loads and validates settings.json configuration file.
 import json
 import os
 from typing import Dict, Any
+from pathlib import Path
 
 
 class ConfigLoader:
@@ -51,31 +52,52 @@ class ConfigLoader:
     }
 
     @staticmethod
-    def load(config_path="config/settings.json") -> Dict[str, Any]:
+    def load(config_path=None) -> Dict[str, Any]:
         """
         Load configuration from file or return defaults.
 
         Args:
-            config_path: Path to settings.json
+            config_path: Path to settings.json (optional)
 
         Returns:
             Configuration dictionary
         """
-        # Try to load from file
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                print(f"[Config] Loaded from {config_path}")
-                return ConfigLoader._merge_with_defaults(config)
-            except Exception as e:
-                print(f"[Config] Error loading {config_path}: {e}")
-                print("[Config] Using default configuration")
-                return ConfigLoader.DEFAULT_CONFIG.copy()
-        else:
-            print(f"[Config] File not found: {config_path}")
-            print("[Config] Using default configuration")
-            return ConfigLoader.DEFAULT_CONFIG.copy()
+        # Search locations in priority order
+        search_paths = []
+
+        # 1. User-specified path (if provided)
+        if config_path:
+            search_paths.append(Path(config_path))
+
+        # 2. User config directory (~/.termivox/settings.json)
+        user_config = Path.home() / ".termivox" / "settings.json"
+        search_paths.append(user_config)
+
+        # 3. Current working directory
+        search_paths.append(Path("config/settings.json"))
+
+        # 4. Package bundled config
+        try:
+            package_dir = Path(__file__).parent.parent.parent
+            bundled_config = package_dir / "config" / "settings.json"
+            search_paths.append(bundled_config)
+        except:
+            pass
+
+        # Try to load from each location
+        for path in search_paths:
+            if path.exists():
+                try:
+                    with open(path, 'r') as f:
+                        config = json.load(f)
+                    print(f"[Config] Loaded from {path}")
+                    return ConfigLoader._merge_with_defaults(config)
+                except Exception as e:
+                    print(f"[Config] Error loading {path}: {e}")
+                    continue
+
+        print("[Config] No config file found, using defaults")
+        return ConfigLoader.DEFAULT_CONFIG.copy()
 
     @staticmethod
     def _merge_with_defaults(config: Dict[str, Any]) -> Dict[str, Any]:

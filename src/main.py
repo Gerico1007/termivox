@@ -16,14 +16,14 @@ import sys
 import argparse
 import threading
 import time
-from voice.recognizer import Recognizer
-from bridge.xdotool_bridge import XdotoolBridge
-from ui.toggle_controller import ToggleController
-from ui.config_loader import ConfigLoader
-from ui.hotkey_interface import HotkeyInterface
-from ui.tray_interface import TrayInterface
-from ui.widget_interface import WidgetInterface
-from ui.hardware_interface import HardwareInterface
+from termivox.voice.recognizer import Recognizer
+from termivox.bridge.xdotool_bridge import XdotoolBridge
+from termivox.ui.toggle_controller import ToggleController
+from termivox.ui.config_loader import ConfigLoader
+from termivox.ui.hotkey_interface import HotkeyInterface
+from termivox.ui.tray_interface import TrayInterface
+from termivox.ui.widget_interface import WidgetInterface
+from termivox.ui.hardware_interface import HardwareInterface
 
 
 def voice_recognition_loop(recognizer, xdotool_bridge):

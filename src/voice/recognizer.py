@@ -1,6 +1,7 @@
 import vosk
 import pyaudio
 import json
+from pathlib import Path
 
 ##**Mia + Miette + JeremyAI Activate!**
 
@@ -17,17 +18,58 @@ class Recognizer:
         self.lang = lang  # Store the language for use in listen()
         self.auto_space = auto_space  # Option to add space after each yielded text
         self._paused = False  # Toggle control: when True, voice recognition is muted
-        # Map language codes to model paths
-        model_paths = {
-            "en": "voice_models/vosk-model-small-en-us-0.15",
-            "fr": "voice_models/vosk-model-small-fr-0.22"
-        }
-        model_path = model_paths.get(lang, "voice_models/vosk-model-small-en-us-0.15")
-        self.model = vosk.Model(model_path)
+
+        # Find the model using search paths
+        model_path = self._find_model(lang)
+        if not model_path:
+            raise FileNotFoundError(
+                f"Vosk model for '{lang}' not found!\n"
+                f"Please run: termivox-download-model --lang {lang}"
+            )
+
+        self.model = vosk.Model(str(model_path))
         self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000)
         self.stream.start_stream()
+
+    def _find_model(self, lang):
+        """Search for voice model in multiple locations.
+
+        Search order:
+        1. User's home directory: ~/.termivox/models/
+        2. Current working directory: ./voice_models/
+        3. Package directory: <package>/voice_models/
+
+        Args:
+            lang: Language code (en or fr)
+
+        Returns:
+            Path to model directory or None if not found
+        """
+        model_names = {
+            "en": "vosk-model-small-en-us-0.15",
+            "fr": "vosk-model-small-fr-0.22"
+        }
+
+        model_name = model_names.get(lang)
+        if not model_name:
+            return None
+
+        search_paths = [
+            # User's home directory
+            Path.home() / ".termivox" / "models" / model_name,
+            # Current working directory
+            Path.cwd() / "voice_models" / model_name,
+            # Package directory
+            Path(__file__).parent.parent.parent / "voice_models" / model_name,
+        ]
+
+        for path in search_paths:
+            if path.exists() and path.is_dir():
+                return path
+
+        return None
 
     def listen(self, trigger_word_start=None, trigger_word_end=None, stop_on_keyboard_interrupt=True):
         # Listen to microphone and yield transcribed text with voice editing, punctuation, and system command support
