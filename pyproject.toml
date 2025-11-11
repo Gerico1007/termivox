@@ -31,13 +31,13 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "vosk>=0.3.50",
-    "pyaudio>=0.2.14",
-    "numpy>=1.26.0,<2.0",
-    "pynput>=1.7.7",
+    "vosk>=0.3.45",
+    "pyaudio>=0.2.13",
+    "numpy>=1.24.0,<2.0",
+    "pynput>=1.7.6",
     "pystray>=0.19.5",
-    "Pillow>=11.0.0,<13.0",
-    "speechrecognition>=3.14.0",
+    "Pillow>=10.0.0",
+    "speechrecognition>=3.10.0",
     "pyyaml>=6.0",
 ]
 
