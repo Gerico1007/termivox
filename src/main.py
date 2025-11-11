@@ -19,6 +19,7 @@ import time
 from termivox.voice.recognizer import Recognizer
 from termivox.bridge.xdotool_bridge import XdotoolBridge
 from termivox.ui.toggle_controller import ToggleController
+from termivox.ui.dual_toggle_controller import DualToggleController
 from termivox.ui.config_loader import ConfigLoader
 from termivox.ui.hotkey_interface import HotkeyInterface
 from termivox.ui.tray_interface import TrayInterface
@@ -74,10 +75,11 @@ def main():
     lang = args.lang or config['voice']['language']
 
     print("=" * 60)
-    print("🎤 Termivox - Voice Recognition Bridge")
+    print("🎤 Termivox v0.2 - Voice Recognition Bridge")
     print("=" * 60)
     print(f"Language: {lang}")
     print(f"Config: {args.config}")
+    print(f"Enhanced Features: Dual Toggle + Visual Shortcuts")
     print()
 
     # Initialize core components
@@ -100,10 +102,11 @@ def main():
             sys.exit(0)
 
     # Toggle mode (default)
-    print("Initializing toggle interfaces...")
+    print("Initializing enhanced toggle interfaces...")
 
-    # Create toggle controller
-    controller = ToggleController(recognizer)
+    # Create dual toggle controller (supports both voice and shortcut toggle)
+    controller = DualToggleController(recognizer)
+    print("✓ Dual toggle controller initialized")
 
     # Start voice recognition in background thread
     voice_thread = threading.Thread(
@@ -117,16 +120,17 @@ def main():
     # Initialize enabled interfaces
     interfaces = []
 
-    # Hotkey interface
+    # Enhanced hotkey interface with dual toggle support
     if config['interfaces']['hotkey']['enabled']:
         try:
+            shortcuts_key = config['interfaces']['hotkey'].get('toggle_shortcuts_key')
             hotkey = HotkeyInterface(
                 controller,
-                key_combo=config['interfaces']['hotkey']['key']
+                key_combo=config['interfaces']['hotkey']['key'],
+                shortcuts_key_combo=shortcuts_key
             )
             hotkey.start()
             interfaces.append(('hotkey', hotkey))
-            print(f"✓ Hotkey: {config['interfaces']['hotkey']['key']}")
         except Exception as e:
             print(f"✗ Hotkey failed: {e}")
 
@@ -142,21 +146,25 @@ def main():
         except Exception as e:
             print(f"✗ Tray icon failed: {e}")
 
-    # Desktop widget interface
+    # Enhanced desktop widget interface with shortcut display
     if config['interfaces']['widget']['enabled']:
         try:
             widget_config = config['interfaces']['widget']
+            shortcuts_config_path = config.get('shortcuts', {}).get('config_file', 'config/shortcuts_config.yaml')
+
             widget = WidgetInterface(
                 controller,
                 position=(widget_config['position']['x'], widget_config['position']['y']),
                 size=(widget_config['size']['width'], widget_config['size']['height']),
-                always_on_top=widget_config['always_on_top']
+                always_on_top=widget_config['always_on_top'],
+                show_shortcuts=widget_config.get('show_shortcuts', True),
+                shortcuts_config=shortcuts_config_path
             )
             # Start widget in background thread
             widget_thread = threading.Thread(target=widget.start, daemon=True)
             widget_thread.start()
             interfaces.append(('widget', widget))
-            print("✓ Desktop widget")
+            print("✓ Enhanced desktop widget with shortcuts")
         except Exception as e:
             print(f"✗ Widget failed: {e}")
 

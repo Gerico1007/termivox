@@ -1,12 +1,12 @@
 """
 Desktop widget interface for Termivox toggle control.
 
-Displays a small always-on-top window with a large toggle button
-and status indicator. Ideal for accessibility and visual clarity.
+Enhanced widget with dual toggle (voice/shortcuts) and visual shortcut display.
+Shows available voice commands with icons for easy reference.
 
-♠️ Nyro: Visible control surface - direct, tangible interaction
-🎸 JamAI: Click the button, change the rhythm - visual and tactile
-🌿 Aureon: A gentle presence on your desktop, always ready
+♠️ Nyro: Enhanced control surface - voice and visuals unite
+🎸 JamAI: Dual rhythm control - see and speak
+🌿 Aureon: Your command center - always visible, always ready
 """
 
 import tkinter as tk
@@ -14,18 +14,28 @@ from tkinter import ttk
 from typing import Optional
 import threading
 from .toggle_controller import ToggleState
+from .dual_toggle_controller import DualToggleController, ShortcutDisplayState
+from .shortcut_display import ShortcutDisplayPanel
+from .context_manager import ContextManager, AppContext
 
 
 class WidgetInterface:
     """
-    Desktop widget for toggle control.
+    Enhanced desktop widget with dual toggle and shortcut display.
 
-    Shows a floating window with toggle button and status label.
-    Window stays on top and can be positioned anywhere on screen.
+    Shows a floating window with:
+    - Dual toggle buttons (voice recognition and shortcut display)
+    - Visual shortcut panel with icons
+    - Context-aware shortcut display
+    - Status indicators
 
     Example:
-        controller = ToggleController(recognizer)
-        widget = WidgetInterface(controller, position=(100, 100))
+        controller = DualToggleController(recognizer)
+        widget = WidgetInterface(
+            controller,
+            position=(100, 100),
+            show_shortcuts=True
+        )
         widget.start()  # Blocks until window closed
     """
 
@@ -33,34 +43,50 @@ class WidgetInterface:
         self,
         controller,
         position=(100, 100),
-        size=(200, 100),
-        always_on_top=True
+        size=(420, 500),
+        always_on_top=True,
+        show_shortcuts=True,
+        shortcuts_config="config/shortcuts_config.yaml"
     ):
         """
-        Initialize widget interface.
+        Initialize enhanced widget interface.
 
         Args:
-            controller: ToggleController instance
+            controller: DualToggleController instance (or ToggleController for compatibility)
             position: (x, y) window position
             size: (width, height) window size
             always_on_top: Keep window above other windows
+            show_shortcuts: Enable shortcut display panel
+            shortcuts_config: Path to shortcuts YAML config
         """
         self.controller = controller
         self.position = position
         self.size = size
         self.always_on_top = always_on_top
+        self.show_shortcuts = show_shortcuts
+        self.shortcuts_config = shortcuts_config
+
+        # Check if controller supports dual toggle
+        self.is_dual_controller = isinstance(controller, DualToggleController)
 
         self._root: Optional[tk.Tk] = None
         self._status_label: Optional[tk.Label] = None
-        self._toggle_button: Optional[tk.Button] = None
+        self._voice_button: Optional[tk.Button] = None
+        self._shortcuts_button: Optional[tk.Button] = None
+        self._shortcut_panel: Optional[ShortcutDisplayPanel] = None
+        self._context_manager: Optional[ContextManager] = None
         self._running = False
 
         # Register for state change notifications
-        self.controller.register_interface(self._on_state_change)
+        self.controller.register_interface(self._on_voice_state_change)
+
+        # Register for shortcut state changes if dual controller
+        if self.is_dual_controller:
+            self.controller.register_shortcut_callback(self._on_shortcuts_state_change)
 
     def _create_window(self):
         """
-        Create and configure tkinter window.
+        Create and configure enhanced tkinter window with dual toggle and shortcuts.
         """
         self._root = tk.Tk()
 
@@ -80,19 +106,34 @@ class WidgetInterface:
             pass
 
         # Minimal title bar
-        title_frame = tk.Frame(self._root, bg='#1a1a1a', cursor='fleur', height=24)
+        title_frame = tk.Frame(self._root, bg='#1a1a1a', cursor='fleur', height=28)
         title_frame.pack(fill='x', side='top')
         title_frame.pack_propagate(False)
 
         title_label = tk.Label(
             title_frame,
-            text="TERMIVOX",
+            text="TERMIVOX v0.2",
             bg='#1a1a1a',
             fg='#888888',
-            font=('Helvetica', 8, 'normal'),
+            font=('Helvetica', 9, 'bold'),
             pady=4
         )
-        title_label.pack(side='left', padx=8)
+        title_label.pack(side='left', padx=10)
+
+        # Close button (X)
+        close_button = tk.Label(
+            title_frame,
+            text="✕",
+            bg='#1a1a1a',
+            fg='#666666',
+            font=('Helvetica', 10, 'bold'),
+            cursor='hand2',
+            padx=6
+        )
+        close_button.pack(side='right', padx=4)
+        close_button.bind('<Button-1>', lambda e: self._on_close())
+        close_button.bind('<Enter>', lambda e: close_button.config(fg='#ff6666'))
+        close_button.bind('<Leave>', lambda e: close_button.config(fg='#666666'))
 
         # Make window draggable
         title_frame.bind('<Button-1>', self._start_drag)
@@ -100,39 +141,77 @@ class WidgetInterface:
         title_label.bind('<Button-1>', self._start_drag)
         title_label.bind('<B1-Motion>', self._on_drag)
 
-        # Main content frame - minimal design
+        # Main content frame
         content_frame = tk.Frame(self._root, bg='#2a2a2a')
         content_frame.pack(fill='both', expand=True)
 
-        # Single toggle button (status shown via color)
-        self._toggle_button = tk.Button(
-            content_frame,
+        # Control panel with dual toggle buttons
+        control_panel = tk.Frame(content_frame, bg='#252525', height=100)
+        control_panel.pack(fill='x', side='top', padx=4, pady=4)
+        control_panel.pack_propagate(False)
+
+        # Voice toggle button
+        self._voice_button = tk.Button(
+            control_panel,
             text="",
-            command=self._on_button_click,
-            font=("Helvetica", 11, 'bold'),
+            command=self._on_voice_button_click,
+            font=("Helvetica", 10, 'bold'),
             cursor='hand2',
             takefocus=0,
             relief='flat',
             borderwidth=0,
-            highlightthickness=0
+            highlightthickness=0,
+            width=18
         )
-        self._toggle_button.pack(fill='both', expand=True, padx=1, pady=1)
+        self._voice_button.pack(side='top', padx=4, pady=(6, 3), fill='x')
 
-        # Status indicator (small dot in corner)
+        # Shortcuts toggle button (if dual controller)
+        if self.is_dual_controller and self.show_shortcuts:
+            self._shortcuts_button = tk.Button(
+                control_panel,
+                text="",
+                command=self._on_shortcuts_button_click,
+                font=("Helvetica", 9, 'normal'),
+                cursor='hand2',
+                takefocus=0,
+                relief='flat',
+                borderwidth=0,
+                highlightthickness=0,
+                width=18
+            )
+            self._shortcuts_button.pack(side='top', padx=4, pady=(3, 6), fill='x')
+
+        # Status indicator
         self._status_label = tk.Label(
-            content_frame,
-            text="●",
-            font=("Helvetica", 10),
-            bg='#2a2a2a',
-            fg='#ffffff'
+            control_panel,
+            text="● Ready",
+            font=("Helvetica", 8),
+            bg='#252525',
+            fg='#888888'
         )
-        self._status_label.place(relx=0.95, rely=0.1, anchor='ne')
+        self._status_label.pack(side='bottom', pady=2)
 
-        # Set initial state
-        self._update_ui(self.controller.get_state())
+        # Shortcut display panel (if enabled)
+        if self.show_shortcuts:
+            shortcuts_frame = tk.Frame(content_frame, bg='#1e1e1e')
+            shortcuts_frame.pack(fill='both', expand=True, padx=0, pady=0)
 
-        # Handle window close (right-click to close since no decorations)
-        self._root.bind('<Button-3>', lambda e: self._on_close())
+            self._shortcut_panel = ShortcutDisplayPanel(
+                shortcuts_frame,
+                config_path=self.shortcuts_config
+            )
+            self._shortcut_panel.render()
+
+            # Start context manager for context-aware shortcuts
+            if self.is_dual_controller:
+                self._context_manager = ContextManager()
+                self._context_manager.register_callback(self._on_context_change)
+                self._context_manager.start()
+
+        # Set initial states
+        self._update_voice_ui(self.controller.get_state())
+        if self.is_dual_controller:
+            self._update_shortcuts_ui(self.controller.get_shortcuts_state())
 
         # Drag variables
         self._drag_x = 0
@@ -149,63 +228,114 @@ class WidgetInterface:
         y = self._root.winfo_y() + event.y - self._drag_y
         self._root.geometry(f"+{x}+{y}")
 
-    def _on_button_click(self):
+    def _on_voice_button_click(self):
         """
-        Called when toggle button is clicked.
-
-        With overrideredirect, this window can't steal focus,
-        so cursor stays exactly where it was!
+        Called when voice toggle button is clicked.
         """
         try:
             self.controller.toggle()
         except Exception as e:
-            print(f"[Widget] Error toggling: {e}")
+            print(f"[Widget] Error toggling voice: {e}")
 
-    def _on_state_change(self, state: ToggleState):
+    def _on_shortcuts_button_click(self):
         """
-        Called when controller state changes.
-        Updates widget appearance.
+        Called when shortcuts toggle button is clicked.
+        """
+        if not self.is_dual_controller:
+            return
+
+        try:
+            self.controller.toggle_shortcuts()
+        except Exception as e:
+            print(f"[Widget] Error toggling shortcuts: {e}")
+
+    def _on_voice_state_change(self, state: ToggleState):
+        """
+        Called when voice recognition state changes.
 
         Args:
             state: New ToggleState
         """
         if self._root:
-            # Schedule UI update on main thread
-            self._root.after(0, lambda: self._update_ui(state))
+            self._root.after(0, lambda: self._update_voice_ui(state))
 
-    def _update_ui(self, state: ToggleState):
+    def _on_shortcuts_state_change(self, state: ShortcutDisplayState):
         """
-        Update widget appearance based on state.
-        Minimal design - colors indicate status.
+        Called when shortcut display state changes.
+
+        Args:
+            state: New ShortcutDisplayState
+        """
+        if self._root:
+            self._root.after(0, lambda: self._update_shortcuts_ui(state))
+
+    def _on_context_change(self, context: AppContext):
+        """
+        Called when application context changes.
+
+        Args:
+            context: New AppContext
+        """
+        if self._shortcut_panel and self._root:
+            self._root.after(0, lambda: self._shortcut_panel.update_context(context.value))
+
+    def _update_voice_ui(self, state: ToggleState):
+        """
+        Update voice button appearance based on state.
 
         Args:
             state: Current ToggleState
         """
-        if not self._status_label or not self._toggle_button:
+        if not self._voice_button:
             return
 
         if state == ToggleState.ACTIVE:
-            # Minimal green theme for ACTIVE
-            self._toggle_button.config(
-                text="LISTENING",
-                bg="#27ae60",  # Professional green
+            self._voice_button.config(
+                text="🎤 VOICE: ON",
+                bg="#27ae60",
                 activebackground="#2ecc71",
                 fg="#ffffff"
             )
-            self._status_label.config(
-                fg="#27ae60"  # Green dot
-            )
+            if self._status_label:
+                self._status_label.config(text="● Listening", fg="#27ae60")
         else:
-            # Minimal red theme for PAUSED
-            self._toggle_button.config(
-                text="MUTED",
-                bg="#555555",  # Neutral gray
+            self._voice_button.config(
+                text="🎤 VOICE: OFF",
+                bg="#555555",
                 activebackground="#666666",
                 fg="#999999"
             )
-            self._status_label.config(
-                fg="#555555"  # Gray dot
+            if self._status_label:
+                self._status_label.config(text="● Muted", fg="#555555")
+
+    def _update_shortcuts_ui(self, state: ShortcutDisplayState):
+        """
+        Update shortcuts button and panel visibility.
+
+        Args:
+            state: Current ShortcutDisplayState
+        """
+        if not self._shortcuts_button:
+            return
+
+        if state == ShortcutDisplayState.VISIBLE:
+            self._shortcuts_button.config(
+                text="📋 SHORTCUTS: ON",
+                bg="#3498db",
+                activebackground="#5dade2",
+                fg="#ffffff"
             )
+            if self._shortcut_panel:
+                self._shortcut_panel.show()
+        else:
+            self._shortcuts_button.config(
+                text="📋 SHORTCUTS: OFF",
+                bg="#555555",
+                activebackground="#666666",
+                fg="#999999"
+            )
+            if self._shortcut_panel:
+                self._shortcut_panel.hide()
 
     def _on_close(self):
         """
@@ -245,6 +375,16 @@ class WidgetInterface:
         """
         if not self._running:
             return
+
+        # Stop context manager
+        if self._context_manager:
+            self._context_manager.stop()
+            self._context_manager = None
+
+        # Destroy shortcut panel
+        if self._shortcut_panel:
+            self._shortcut_panel.destroy()
+            self._shortcut_panel = None
 
         if self._root:
             self._root.quit()

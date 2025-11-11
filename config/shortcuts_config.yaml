@@ -1,0 +1,181 @@
+# Termivox Shortcuts Configuration
+# Define voice commands and their associated actions with visual icons
+#
+# Icon types:
+#   voice: 🎤 Voice commands (punctuation, editing)
+#   keyboard: ⌨️ Keyboard shortcuts (copy, paste, undo)
+#   mouse: 🖱️ Mouse actions (click, scroll)
+#   text: 📝 Text formatting (new line, tab)
+
+shortcuts:
+  punctuation:
+    - trigger: "comma"
+      action: ","
+      icon: voice
+      enabled: true
+      description: "Insert comma"
+
+    - trigger: "period"
+      action: "."
+      icon: voice
+      enabled: true
+      description: "Insert period"
+
+    - trigger: "question mark"
+      action: "?"
+      icon: voice
+      enabled: true
+      description: "Insert question mark"
+
+    - trigger: "exclamation mark"
+      action: "!"
+      icon: voice
+      enabled: true
+      description: "Insert exclamation mark"
+
+    - trigger: "colon"
+      action: ":"
+      icon: voice
+      enabled: true
+      description: "Insert colon"
+
+    - trigger: "semicolon"
+      action: ";"
+      icon: voice
+      enabled: true
+      description: "Insert semicolon"
+
+  editing:
+    - trigger: "new line"
+      action: "\n"
+      icon: text
+      enabled: true
+      description: "Insert new line"
+
+    - trigger: "tab"
+      action: "\t"
+      icon: text
+      enabled: true
+      description: "Insert tab"
+
+    - trigger: "space"
+      action: " "
+      icon: text
+      enabled: true
+      description: "Insert space"
+
+    - trigger: "backspace"
+      action: "BackSpace"
+      icon: keyboard
+      enabled: true
+      description: "Delete previous character"
+
+    - trigger: "delete"
+      action: "Delete"
+      icon: keyboard
+      enabled: true
+      description: "Delete next character"
+
+  system:
+    - trigger: "copy"
+      action: "ctrl+c"
+      icon: keyboard
+      enabled: true
+      description: "Copy selection"
+
+    - trigger: "paste"
+      action: "ctrl+v"
+      icon: keyboard
+      enabled: true
+      description: "Paste clipboard"
+
+    - trigger: "cut"
+      action: "ctrl+x"
+      icon: keyboard
+      enabled: true
+      description: "Cut selection"
+
+    - trigger: "undo"
+      action: "ctrl+z"
+      icon: keyboard
+      enabled: true
+      description: "Undo last action"
+
+    - trigger: "redo"
+      action: "ctrl+shift+z"
+      icon: keyboard
+      enabled: true
+      description: "Redo last action"
+
+    - trigger: "select all"
+      action: "ctrl+a"
+      icon: keyboard
+      enabled: true
+      description: "Select all text"
+
+  mouse:
+    - trigger: "click"
+      action: "click"
+      icon: mouse
+      enabled: true
+      description: "Left mouse click"
+
+    - trigger: "right click"
+      action: "right_click"
+      icon: mouse
+      enabled: true
+      description: "Right mouse click"
+
+    - trigger: "double click"
+      action: "double_click"
+      icon: mouse
+      enabled: true
+      description: "Double left click"
+
+# Display settings for shortcut panel
+display:
+  show_icons: true
+  compact_mode: false
+  position: "attached"  # attached, floating, top-right, etc.
+  max_visible_shortcuts: 12
+  group_by_category: true
+  show_descriptions: true
+  theme: "dark"  # dark, light
+
+# Context-specific shortcuts (future feature)
+contexts:
+  default:
+    enabled_categories:
+      - punctuation
+      - editing
+      - system
+      - mouse
+
+  terminal:
+    enabled_categories:
+      - editing
+      - system
+    additional_shortcuts:
+      - trigger: "clear screen"
+        action: "ctrl+l"
+        icon: keyboard
+        enabled: true
+        description: "Clear terminal"
+
+  browser:
+    enabled_categories:
+      - punctuation
+      - editing
+      - system
+    additional_shortcuts:
+      - trigger: "new tab"
+        action: "ctrl+t"
+        icon: keyboard
+        enabled: true
+        description: "Open new tab"
+
+      - trigger: "close tab"
+        action: "ctrl+w"
+        icon: keyboard
+        enabled: true
+        description: "Close current tab"

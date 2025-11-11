@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "termivox"
-version = "0.1.2"
-description = "Voice Recognition Bridge for Linux - Speak naturally, control your system, type hands-free"
+version = "0.2.0"
+description = "Voice Recognition Bridge for Linux - Speak naturally, control your system, type hands-free with visual shortcuts"
 readme = "README.md"
 authors = [
     {name = "Gerico", email = "gerico@jgwill.com"}
 ]
 license = {text = "MIT"}
 # license = "MIT"  # Use when setuptools >= 77.0.0
-keywords = ["voice-recognition", "speech-to-text", "linux", "vosk", "accessibility", "hands-free", "dictation"]
+keywords = ["voice-recognition", "speech-to-text", "linux", "vosk", "accessibility", "hands-free", "dictation", "shortcuts"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
@@ -31,13 +31,14 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "vosk>=0.3.45",
-    "pyaudio>=0.2.13",
-    "numpy>=1.24.0",
-    "pynput>=1.7.6",
+    "vosk>=0.3.50",
+    "pyaudio>=0.2.14",
+    "numpy>=1.26.0,<2.0",
+    "pynput>=1.7.7",
     "pystray>=0.19.5",
-    "Pillow>=10.0.0",
-    "speechrecognition>=3.10.0",
+    "Pillow>=11.0.0,<13.0",
+    "speechrecognition>=3.14.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

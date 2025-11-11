@@ -1,57 +1,95 @@
 """
 Global hotkey interface for Termivox toggle control.
 
-Registers a keyboard shortcut (default: Ctrl+Alt+V) that toggles
-voice recognition ON/OFF from anywhere.
+Registers keyboard shortcuts for dual toggle control:
+- Voice toggle (default: Ctrl+Alt+V)
+- Shortcuts toggle (default: Ctrl+Alt+S)
 
-♠️ Nyro: Keyboard listener - the invisible trigger
-🎸 JamAI: Press the key, flip the state - instant rhythm change
-🌿 Aureon: Like a guitar pedal - one tap, instant response
+♠️ Nyro: Dual keyboard listeners - two triggers, two rhythms
+🎸 JamAI: Press the keys, flip the states - instant control
+🌿 Aureon: Like dual guitar pedals - independent control
 """
 
 from pynput import keyboard
 from typing import Optional
 import threading
+from .dual_toggle_controller import DualToggleController
 
 
 class HotkeyInterface:
     """
-    Global hotkey listener for toggle control.
+    Global hotkey listener for dual toggle control.
 
-    Registers a configurable keyboard combination and calls
-    controller.toggle() when pressed.
+    Registers configurable keyboard combinations:
+    - Voice toggle hotkey
+    - Shortcuts toggle hotkey (if DualToggleController)
 
     Example:
-        controller = ToggleController(recognizer)
-        hotkey = HotkeyInterface(controller, key_combo="ctrl+alt+v")
+        controller = DualToggleController(recognizer)
+        hotkey = HotkeyInterface(
+            controller,
+            key_combo="ctrl+alt+v",
+            shortcuts_key_combo="ctrl+alt+s"
+        )
         hotkey.start()  # Begins listening in background
     """
 
-    def __init__(self, controller, key_combo="ctrl+alt+v"):
+    def __init__(
+        self,
+        controller,
+        key_combo="ctrl+alt+v",
+        shortcuts_key_combo=None
+    ):
         """
         Initialize hotkey interface.
 
         Args:
-            controller: ToggleController instance
-            key_combo: Keyboard shortcut (e.g., "ctrl+alt+v", "ctrl+shift+t")
+            controller: ToggleController or DualToggleController instance
+            key_combo: Voice toggle keyboard shortcut (e.g., "ctrl+alt+v")
+            shortcuts_key_combo: Shortcuts toggle keyboard shortcut (e.g., "ctrl+alt+s")
         """
         self.controller = controller
         self.key_combo = key_combo
+        self.shortcuts_key_combo = shortcuts_key_combo
         self._listener: Optional[keyboard.GlobalHotKeys] = None
         self._running = False
 
-        # Parse key combination
-        self._hotkey_config = self._parse_hotkey(key_combo)
+        # Check if dual controller
+        self.is_dual_controller = isinstance(controller, DualToggleController)
 
-    def _parse_hotkey(self, key_combo: str) -> dict:
+        # Parse key combinations
+        self._hotkey_config = self._parse_hotkeys()
+
+    def _parse_hotkeys(self) -> dict:
         """
-        Parse hotkey string into pynput format.
+        Parse all hotkey strings into pynput format.
+
+        Returns:
+            Dictionary mapping hotkeys to callbacks
+        """
+        config = {}
+
+        # Voice toggle hotkey
+        if self.key_combo:
+            voice_hotkey = self._format_hotkey(self.key_combo)
+            config[voice_hotkey] = self._on_voice_hotkey_press
+
+        # Shortcuts toggle hotkey (if dual controller)
+        if self.is_dual_controller and self.shortcuts_key_combo:
+            shortcuts_hotkey = self._format_hotkey(self.shortcuts_key_combo)
+            config[shortcuts_hotkey] = self._on_shortcuts_hotkey_press
+
+        return config
+
+    def _format_hotkey(self, key_combo: str) -> str:
+        """
+        Format hotkey string into pynput format.
 
         Args:
             key_combo: String like "ctrl+alt+v"
 
         Returns:
-            Dictionary mapping hotkey to callback
+            Formatted hotkey string for pynput
         """
         # Convert common names to pynput format
         # Modifier keys (ctrl, alt, shift, cmd) need angle brackets
@@ -66,19 +104,30 @@ class HotkeyInterface:
             else:
                 formatted_keys.append(key)
 
-        formatted = '+'.join(formatted_keys)
-        return {formatted: self._on_hotkey_press}
+        return '+'.join(formatted_keys)
 
-    def _on_hotkey_press(self):
+    def _on_voice_hotkey_press(self):
         """
-        Called when hotkey is pressed.
-        Toggles the controller state.
+        Called when voice toggle hotkey is pressed.
         """
         try:
             new_state = self.controller.toggle()
-            print(f"[Hotkey] Toggled to: {new_state.value}")
+            print(f"[Hotkey] Voice toggled to: {new_state.value}")
         except Exception as e:
-            print(f"[Hotkey] Error toggling: {e}")
+            print(f"[Hotkey] Error toggling voice: {e}")
+
+    def _on_shortcuts_hotkey_press(self):
+        """
+        Called when shortcuts toggle hotkey is pressed.
+        """
+        if not self.is_dual_controller:
+            return
+
+        try:
+            new_state = self.controller.toggle_shortcuts()
+            print(f"[Hotkey] Shortcuts toggled to: {new_state.value}")
+        except Exception as e:
+            print(f"[Hotkey] Error toggling shortcuts: {e}")
 
     def start(self):
         """
@@ -93,7 +142,12 @@ class HotkeyInterface:
             self._listener = keyboard.GlobalHotKeys(self._hotkey_config)
             self._listener.start()
             self._running = True
-            print(f"[Hotkey] Listening for: {self.key_combo}")
+
+            # Print registered hotkeys
+            print(f"[Hotkey] Voice toggle: {self.key_combo}")
+            if self.is_dual_controller and self.shortcuts_key_combo:
+                print(f"[Hotkey] Shortcuts toggle: {self.shortcuts_key_combo}")
+
         except Exception as e:
             print(f"[Hotkey] Failed to start: {e}")
             raise

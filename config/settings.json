@@ -2,7 +2,8 @@
   "interfaces": {
     "hotkey": {
       "enabled": true,
-      "key": "ctrl+alt+v"
+      "key": "ctrl+alt+v",
+      "toggle_shortcuts_key": "ctrl+alt+s"
     },
     "tray": {
       "enabled": false
@@ -14,10 +15,12 @@
         "y": 100
       },
       "size": {
-        "width": 160,
-        "height": 70
+        "width": 420,
+        "height": 500
       },
-      "always_on_top": true
+      "always_on_top": true,
+      "show_shortcuts": true,
+      "shortcuts_position": "attached"
     },
     "hardware": {
       "enabled": false,
@@ -29,5 +32,15 @@
     "language": "en",
     "auto_space": true
   },
-  "audio_feedback": false
+  "audio_feedback": false,
+  "activation_modes": {
+    "voice_only": false,
+    "shortcuts_only": false,
+    "both": true
+  },
+  "shortcuts": {
+    "config_file": "config/shortcuts_config.yaml",
+    "enable_context_detection": true,
+    "auto_hide_when_inactive": false
+  }
 }
