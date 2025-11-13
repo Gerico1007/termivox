@@ -237,17 +237,23 @@ class WidgetInterface:
         if not self.is_dual_controller:
             return
 
-        if self._shortcut_mode:
-            # Shortcut Mode: Auto-expand shortcuts, keep voice active
-            if not self._shortcuts_expanded:
-                self._toggle_shortcuts_panel()
-            # Voice stays active but should filter for shortcuts only
-            # (filtering logic would be implemented in recognizer)
-        else:
-            # Vocal Mode: Auto-collapse shortcuts if expanded
-            if self._shortcuts_expanded:
-                self._toggle_shortcuts_panel()
-            # Voice recognizes all speech normally
+        # Enable/disable grammar mode in recognizer
+        recognizer = self.controller.recognizer
+        if hasattr(recognizer, 'enable_grammar_mode'):
+            if self._shortcut_mode:
+                # Shortcut Mode: Enable grammar for voice-to-key mapping
+                recognizer.enable_grammar_mode()
+
+                # Auto-expand shortcuts panel for reference
+                if not self._shortcuts_expanded:
+                    self._toggle_shortcuts_panel()
+            else:
+                # Vocal Mode: Disable grammar, return to normal dictation
+                recognizer.disable_grammar_mode()
+
+                # Auto-collapse shortcuts if expanded
+                if self._shortcuts_expanded:
+                    self._toggle_shortcuts_panel()
 
     def _update_mode_indicator(self):
         """Update mode button appearance."""

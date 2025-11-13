@@ -2,6 +2,7 @@ import vosk
 import pyaudio
 import json
 from pathlib import Path
+from typing import Optional
 
 ##**Mia + Miette + JeremyAI Activate!**
 
@@ -18,6 +19,8 @@ class Recognizer:
         self.lang = lang  # Store the language for use in listen()
         self.auto_space = auto_space  # Option to add space after each yielded text
         self._paused = False  # Toggle control: when True, voice recognition is muted
+        self._grammar_mode = False  # Grammar mode: when True, use command grammar
+        self._command_grammar = None  # CommandGrammar instance (lazy loaded)
 
         # Find the model using search paths
         model_path = self._find_model(lang)
@@ -257,6 +260,50 @@ class Recognizer:
             True if paused, False if active
         """
         return self._paused
+
+    def enable_grammar_mode(self):
+        """
+        Enable command grammar mode for voice-to-key mapping.
+        When enabled, voice commands are parsed as keyboard actions.
+        """
+        if not self._command_grammar:
+            from .command_grammar import CommandGrammar
+            self._command_grammar = CommandGrammar()
+
+        self._grammar_mode = True
+        print("[Recognizer] Grammar mode enabled - voice-to-key mapping active")
+
+    def disable_grammar_mode(self):
+        """
+        Disable command grammar mode.
+        Returns to normal dictation mode.
+        """
+        self._grammar_mode = False
+        print("[Recognizer] Grammar mode disabled - normal dictation mode")
+
+    def is_grammar_mode(self) -> bool:
+        """
+        Check if grammar mode is active.
+
+        Returns:
+            True if grammar mode enabled, False otherwise
+        """
+        return self._grammar_mode
+
+    def parse_command(self, utterance: str) -> bool:
+        """
+        Parse and execute a voice command using grammar.
+
+        Args:
+            utterance: Spoken command
+
+        Returns:
+            True if command was recognized and executed
+        """
+        if not self._grammar_mode or not self._command_grammar:
+            return False
+
+        return self._command_grammar.parse(utterance)
 
     def close(self):
         self.stream.stop_stream()

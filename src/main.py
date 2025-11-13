@@ -32,6 +32,9 @@ def voice_recognition_loop(recognizer, xdotool_bridge):
     Voice recognition loop - runs in background thread.
     Processes voice commands and types them via xdotool.
 
+    In grammar mode, commands are parsed and executed as keyboard actions.
+    In vocal mode, text is typed normally.
+
     Args:
         recognizer: Recognizer instance
         xdotool_bridge: XdotoolBridge instance
@@ -39,8 +42,17 @@ def voice_recognition_loop(recognizer, xdotool_bridge):
     try:
         for command in recognizer.listen():
             if command:
-                print(f"Recognized: {command}")
-                xdotool_bridge.type_text(command)
+                # Check if grammar mode is active
+                if recognizer.is_grammar_mode():
+                    # Try to parse as grammar command
+                    if recognizer.parse_command(command):
+                        # Command was executed, don't type
+                        continue
+                    # If not a command, ignore in grammar mode
+                else:
+                    # Vocal mode: type the text normally
+                    print(f"Recognized: {command}")
+                    xdotool_bridge.type_text(command)
     except KeyboardInterrupt:
         pass
     except Exception as e:
