@@ -1,15 +1,14 @@
 """
 Desktop widget interface for Termivox toggle control.
 
-Compact widget with mode selector and expandable shortcuts panel.
-Shows a small floating window with:
-- Main toggle button (voice status)
-- Mode selector (3 scenarios)
-- Expandable shortcuts reference panel
+Compact 3-button design:
+- Voice Toggle (LISTENING/OFF)
+- Expand Arrow (show/hide shortcuts)
+- Mode Selector (Vocal/Shortcut)
 
-♠️ Nyro: Compact control surface - small but powerful
-🎸 JamAI: Choose your rhythm - three modes, one interface
-🌿 Aureon: Minimal presence, maximum control
+♠️ Nyro: Three buttons, infinite control
+🎸 JamAI: Simple interface, powerful modes
+🌿 Aureon: Clarity through simplicity
 """
 
 import tkinter as tk
@@ -24,12 +23,20 @@ from .context_manager import ContextManager, AppContext
 
 class WidgetInterface:
     """
-    Compact desktop widget with mode selector and expandable shortcuts.
+    Compact 3-button widget for Termivox control.
+
+    Layout (180x90):
+    ┌──────────────────────────────┐
+    │ TERMIVOX              ✕     │
+    ├──────────────────────────────┤
+    │       LISTENING              │ ← Voice toggle
+    ├──────────────────────────────┤
+    │ 🎛️ VOCAL          ◀         │ ← Mode + Expand
+    └──────────────────────────────┘
 
     Modes:
-    1. Voice + Shortcuts: Full functionality
-    2. Voice Only: Voice active, shortcuts hidden
-    3. Shortcuts Only: Voice off, shortcuts visible as reference
+    - VOCAL: Listens to all speech (normal mode)
+    - SHORTCUT: Only recognizes shortcut commands
 
     Example:
         controller = DualToggleController(recognizer)
@@ -47,20 +54,20 @@ class WidgetInterface:
         shortcuts_config="config/shortcuts_config.yaml"
     ):
         """
-        Initialize compact widget interface.
+        Initialize compact 3-button widget.
 
         Args:
             controller: DualToggleController instance
             position: (x, y) window position
-            size: (width, height) base window size (expandable)
+            size: (width, height) base window size
             always_on_top: Keep window above other windows
-            show_shortcuts: Enable shortcuts panel feature
+            show_shortcuts: Enable shortcuts panel
             shortcuts_config: Path to shortcuts YAML config
         """
         self.controller = controller
         self.position = position
-        self.base_size = size  # Compact size
-        self.expanded_size = (380, 420)  # Expanded with shortcuts
+        self.base_size = size
+        self.expanded_size = (380, 420)
         self.always_on_top = always_on_top
         self.show_shortcuts = show_shortcuts
         self.shortcuts_config = shortcuts_config
@@ -70,13 +77,12 @@ class WidgetInterface:
 
         # UI state
         self._shortcuts_expanded = False
-        self._current_mode = ActivationMode.BOTH_ACTIVE
+        self._shortcut_mode = False  # False = Vocal, True = Shortcut-only
 
         # UI elements
         self._root: Optional[tk.Tk] = None
-        self._status_label: Optional[tk.Label] = None
         self._toggle_button: Optional[tk.Button] = None
-        self._mode_buttons = []
+        self._mode_button: Optional[tk.Label] = None
         self._expand_button: Optional[tk.Label] = None
         self._shortcut_panel: Optional[ShortcutDisplayPanel] = None
         self._shortcuts_frame: Optional[tk.Frame] = None
@@ -86,14 +92,11 @@ class WidgetInterface:
         # Register for state change notifications
         self.controller.register_interface(self._on_voice_state_change)
 
-        # Register for shortcut state changes if dual controller
         if self.is_dual_controller:
             self.controller.register_shortcut_callback(self._on_shortcuts_state_change)
 
     def _create_window(self):
-        """
-        Create compact window with mode selector and expandable shortcuts.
-        """
+        """Create compact 3-button window."""
         self._root = tk.Tk()
         self._root.overrideredirect(True)
         self._root.geometry(f"{self.base_size[0]}x{self.base_size[1]}+{self.position[0]}+{self.position[1]}")
@@ -146,7 +149,7 @@ class WidgetInterface:
         content_frame = tk.Frame(self._root, bg='#2a2a2a')
         content_frame.pack(fill='both', expand=True)
 
-        # Toggle button (compact)
+        # Button 1: Voice Toggle (main, large)
         self._toggle_button = tk.Button(
             content_frame,
             text="",
@@ -158,89 +161,51 @@ class WidgetInterface:
             borderwidth=0,
             highlightthickness=0
         )
-        self._toggle_button.pack(fill='both', expand=True, padx=2, pady=2)
+        self._toggle_button.pack(fill='both', expand=True, padx=2, pady=(2, 1))
 
         # Bottom bar with mode selector and expand button
         bottom_bar = tk.Frame(content_frame, bg='#1e1e1e', height=26)
         bottom_bar.pack(fill='x', side='bottom')
         bottom_bar.pack_propagate(False)
 
-        # Mode selector (3 icon buttons)
-        mode_frame = tk.Frame(bottom_bar, bg='#1e1e1e')
-        mode_frame.pack(side='left', padx=4)
-
-        # Mode 1: Voice + Shortcuts
-        mode1_btn = tk.Label(
-            mode_frame,
-            text="🎤📋",
+        # Button 2: Mode Selector (left)
+        self._mode_button = tk.Label(
+            bottom_bar,
+            text="🎛️ VOCAL",
             bg='#1e1e1e',
-            fg='#4a9eff',
-            font=('Helvetica', 9),
+            fg='#ffffff',
+            font=('Helvetica', 9, 'bold'),
             cursor='hand2',
-            padx=3
+            padx=8
         )
-        mode1_btn.pack(side='left', padx=1)
-        mode1_btn.bind('<Button-1>', lambda e: self._set_mode(ActivationMode.BOTH_ACTIVE))
-        mode1_btn.bind('<Enter>', lambda e: mode1_btn.config(bg='#2a2a2a'))
-        mode1_btn.bind('<Leave>', lambda e: mode1_btn.config(bg='#1e1e1e'))
-        self._mode_buttons.append(mode1_btn)
+        self._mode_button.pack(side='left', padx=4, pady=2)
+        self._mode_button.bind('<Button-1>', lambda e: self._toggle_mode())
+        self._mode_button.bind('<Enter>', lambda e: self._mode_button.config(bg='#2a2a2a'))
+        self._mode_button.bind('<Leave>', lambda e: self._mode_button.config(bg='#1e1e1e'))
 
-        # Mode 2: Voice Only
-        mode2_btn = tk.Label(
-            mode_frame,
-            text="🎤",
-            bg='#1e1e1e',
-            fg='#888888',
-            font=('Helvetica', 11),
-            cursor='hand2',
-            padx=3
-        )
-        mode2_btn.pack(side='left', padx=1)
-        mode2_btn.bind('<Button-1>', lambda e: self._set_mode(ActivationMode.VOICE_ONLY))
-        mode2_btn.bind('<Enter>', lambda e: mode2_btn.config(bg='#2a2a2a'))
-        mode2_btn.bind('<Leave>', lambda e: mode2_btn.config(bg='#1e1e1e'))
-        self._mode_buttons.append(mode2_btn)
-
-        # Mode 3: Shortcuts Only
-        mode3_btn = tk.Label(
-            mode_frame,
-            text="📋",
-            bg='#1e1e1e',
-            fg='#888888',
-            font=('Helvetica', 11),
-            cursor='hand2',
-            padx=3
-        )
-        mode3_btn.pack(side='left', padx=1)
-        mode3_btn.bind('<Button-1>', lambda e: self._set_mode(ActivationMode.SHORTCUTS_ONLY))
-        mode3_btn.bind('<Enter>', lambda e: mode3_btn.config(bg='#2a2a2a'))
-        mode3_btn.bind('<Leave>', lambda e: mode3_btn.config(bg='#1e1e1e'))
-        self._mode_buttons.append(mode3_btn)
-
-        # Expand/Collapse button for shortcuts
+        # Button 3: Expand Arrow (right)
         if self.show_shortcuts:
             self._expand_button = tk.Label(
                 bottom_bar,
                 text="◀",
                 bg='#1e1e1e',
                 fg='#888888',
-                font=('Helvetica', 10),
+                font=('Helvetica', 12, 'bold'),
                 cursor='hand2',
-                padx=4
+                padx=8
             )
-            self._expand_button.pack(side='right', padx=4)
+            self._expand_button.pack(side='right', padx=4, pady=2)
             self._expand_button.bind('<Button-1>', lambda e: self._toggle_shortcuts_panel())
             self._expand_button.bind('<Enter>', lambda e: self._expand_button.config(fg='#4a9eff'))
             self._expand_button.bind('<Leave>', lambda e: self._expand_button.config(fg='#888888'))
 
-        # Shortcuts panel (initially hidden, slides out to the right)
+        # Shortcuts panel frame (expandable)
         if self.show_shortcuts:
             self._shortcuts_frame = tk.Frame(self._root, bg='#1e1e1e', width=200)
-            # Don't pack yet - will be shown on expand
 
         # Set initial state
         self._update_ui(self.controller.get_state())
-        self._update_mode_indicators()
+        self._update_mode_indicator()
 
         # Drag variables
         self._drag_x = 0
@@ -258,76 +223,65 @@ class WidgetInterface:
         self._root.geometry(f"+{x}+{y}")
 
     def _on_toggle_click(self):
-        """Main toggle button clicked - behavior depends on current mode."""
-        if not self.is_dual_controller:
-            # Simple toggle
-            self.controller.toggle()
-            return
-
-        current_mode = self.controller.get_activation_mode()
-
-        if current_mode == ActivationMode.BOTH_ACTIVE:
-            # Pause voice
+        """Button 1: Toggle voice on/off."""
+        if self.controller.is_active():
             self.controller.pause()
-        elif current_mode == ActivationMode.VOICE_ONLY:
-            # Pause voice
-            self.controller.pause()
-        elif current_mode == ActivationMode.SHORTCUTS_ONLY:
-            # Activate voice
-            self.controller.resume()
-        else:  # BOTH_INACTIVE
-            # Resume voice
+        else:
             self.controller.resume()
 
-    def _set_mode(self, mode: ActivationMode):
-        """Set activation mode."""
+    def _toggle_mode(self):
+        """Button 2: Toggle between Vocal and Shortcut modes."""
+        self._shortcut_mode = not self._shortcut_mode
+        self._update_mode_indicator()
+
         if not self.is_dual_controller:
             return
 
-        self._current_mode = mode
-        self.controller.set_mode(mode)
-        self._update_mode_indicators()
+        if self._shortcut_mode:
+            # Shortcut Mode: Auto-expand shortcuts, keep voice active
+            if not self._shortcuts_expanded:
+                self._toggle_shortcuts_panel()
+            # Voice stays active but should filter for shortcuts only
+            # (filtering logic would be implemented in recognizer)
+        else:
+            # Vocal Mode: Auto-collapse shortcuts if expanded
+            if self._shortcuts_expanded:
+                self._toggle_shortcuts_panel()
+            # Voice recognizes all speech normally
 
-        # Auto-expand shortcuts if shortcuts-only mode
-        if mode == ActivationMode.SHORTCUTS_ONLY and not self._shortcuts_expanded:
-            self._toggle_shortcuts_panel()
-        elif mode == ActivationMode.VOICE_ONLY and self._shortcuts_expanded:
-            self._toggle_shortcuts_panel()
-
-    def _update_mode_indicators(self):
-        """Update mode button highlights."""
-        if not self._mode_buttons:
+    def _update_mode_indicator(self):
+        """Update mode button appearance."""
+        if not self._mode_button:
             return
 
-        modes = [
-            ActivationMode.BOTH_ACTIVE,
-            ActivationMode.VOICE_ONLY,
-            ActivationMode.SHORTCUTS_ONLY
-        ]
-
-        for i, btn in enumerate(self._mode_buttons):
-            if self._current_mode == modes[i]:
-                btn.config(fg='#4a9eff')  # Highlight active mode
-            else:
-                btn.config(fg='#888888')  # Dim inactive modes
+        if self._shortcut_mode:
+            # Shortcut Mode: Blue highlight
+            self._mode_button.config(
+                text="🎛️ SHORTCUT",
+                fg='#4a9eff',
+                font=('Helvetica', 8, 'bold')
+            )
+        else:
+            # Vocal Mode: White/default
+            self._mode_button.config(
+                text="🎛️ VOCAL",
+                fg='#ffffff',
+                font=('Helvetica', 9, 'bold')
+            )
 
     def _toggle_shortcuts_panel(self):
-        """Toggle shortcuts panel visibility (expand/collapse)."""
+        """Button 3: Toggle shortcuts panel visibility."""
         if not self._shortcuts_frame:
             return
 
         self._shortcuts_expanded = not self._shortcuts_expanded
 
         if self._shortcuts_expanded:
-            # Expand window and show shortcuts
-            new_width = self.expanded_size[0]
-            new_height = self.expanded_size[1]
-            self._root.geometry(f"{new_width}x{new_height}")
-
-            # Show shortcuts panel
+            # Expand window
+            self._root.geometry(f"{self.expanded_size[0]}x{self.expanded_size[1]}")
             self._shortcuts_frame.pack(side='right', fill='both', expand=True)
 
-            # Create shortcut panel if not exists
+            # Create panel if needed
             if not self._shortcut_panel:
                 self._shortcut_panel = ShortcutDisplayPanel(
                     self._shortcuts_frame,
@@ -335,39 +289,35 @@ class WidgetInterface:
                 )
                 self._shortcut_panel.render()
 
-                # Start context manager
                 if self.is_dual_controller:
                     self._context_manager = ContextManager()
                     self._context_manager.register_callback(self._on_context_change)
                     self._context_manager.start()
 
-            # Update expand button
+            # Update arrow
             if self._expand_button:
                 self._expand_button.config(text="▶")
 
         else:
             # Collapse window
             self._root.geometry(f"{self.base_size[0]}x{self.base_size[1]}")
-
-            # Hide shortcuts panel
             self._shortcuts_frame.pack_forget()
 
-            # Update expand button
+            # Update arrow
             if self._expand_button:
                 self._expand_button.config(text="◀")
 
     def _on_voice_state_change(self, state: ToggleState):
-        """Called when voice recognition state changes."""
+        """Called when voice state changes."""
         if self._root:
             self._root.after(0, lambda: self._update_ui(state))
 
     def _on_shortcuts_state_change(self, state: ShortcutDisplayState):
-        """Called when shortcut display state changes."""
-        if self._root:
-            self._root.after(0, lambda: self._update_mode_indicators())
+        """Called when shortcuts state changes."""
+        pass  # Not used in 3-button design
 
     def _on_context_change(self, context: AppContext):
-        """Called when application context changes."""
+        """Called when app context changes."""
         if self._shortcut_panel and self._root:
             self._root.after(0, lambda: self._shortcut_panel.update_context(context.value))
 
@@ -385,18 +335,18 @@ class WidgetInterface:
             )
         else:
             self._toggle_button.config(
-                text="MUTED",
+                text="OFF",
                 bg="#555555",
                 activebackground="#666666",
                 fg="#999999"
             )
 
     def _on_close(self):
-        """Called when window close button clicked."""
+        """Close button clicked."""
         self.stop()
 
     def start(self):
-        """Start widget window. Blocks until window is closed."""
+        """Start widget window."""
         if self._running:
             print("[Widget] Already running")
             return
@@ -404,7 +354,7 @@ class WidgetInterface:
         self._running = True
         self._create_window()
 
-        print(f"[Widget] Compact mode started at {self.position}")
+        print(f"[Widget] 3-button compact mode started at {self.position}")
 
         if self._root:
             self._root.mainloop()
@@ -419,12 +369,10 @@ class WidgetInterface:
         if not self._running:
             return
 
-        # Stop context manager
         if self._context_manager:
             self._context_manager.stop()
             self._context_manager = None
 
-        # Destroy shortcut panel
         if self._shortcut_panel:
             self._shortcut_panel.destroy()
             self._shortcut_panel = None
