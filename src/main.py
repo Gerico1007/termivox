@@ -24,6 +24,7 @@ from termivox.ui.hotkey_interface import HotkeyInterface
 from termivox.ui.tray_interface import TrayInterface
 from termivox.ui.widget_interface import WidgetInterface
 from termivox.ui.hardware_interface import HardwareInterface
+from termivox.ai.ai_service import create_ai_service
 
 
 def voice_recognition_loop(recognizer, xdotool_bridge):
@@ -80,8 +81,38 @@ def main():
     print(f"Config: {args.config}")
     print()
 
+    # Initialize AI service if enabled
+    ai_service = None
+    if config.get('ai', {}).get('enabled', False):
+        ai_config = config['ai']
+        try:
+            ai_service = create_ai_service(
+                provider=ai_config['provider'],
+                api_key=None,  # Will use environment variables
+                model=ai_config.get('model')
+            )
+
+            if ai_service and ai_service.is_available():
+                print(f"✓ AI Enhancement: {ai_config['provider'].upper()}")
+                print(f"  - Mode: {ai_config['buffer_mode']}")
+                print(f"  - Model: {ai_service.model}")
+            else:
+                print(f"✗ AI Enhancement: {ai_config['provider'].upper()} not available")
+                print(f"  - Check API key environment variable")
+                ai_service = None
+        except Exception as e:
+            print(f"✗ AI Enhancement failed: {e}")
+            ai_service = None
+        print()
+
     # Initialize core components
-    recognizer = Recognizer(lang=lang, auto_space=config['voice']['auto_space'])
+    recognizer = Recognizer(
+        lang=lang,
+        auto_space=config['voice']['auto_space'],
+        ai_service=ai_service,
+        ai_buffer_mode=config.get('ai', {}).get('buffer_mode', 'sentence'),
+        ai_buffer_size=config.get('ai', {}).get('buffer_size', 50)
+    )
     xdotool_bridge = XdotoolBridge()
 
     # Original mode (no toggle interfaces)

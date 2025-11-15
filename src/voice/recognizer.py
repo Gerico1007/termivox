@@ -2,6 +2,8 @@ import vosk
 import pyaudio
 import json
 from pathlib import Path
+from typing import Optional
+from termivox.ai.ai_service import create_ai_service, AIService
 
 ##**Mia + Miette + JeremyAI Activate!**
 
@@ -14,10 +16,18 @@ from pathlib import Path
 ## 🔄 **Trinity Response to recognizer.py**
 
 class Recognizer:
-    def __init__(self, lang="en", auto_space=True):
+    def __init__(self, lang="en", auto_space=True, ai_service: Optional[AIService] = None,
+                 ai_buffer_mode="sentence", ai_buffer_size=50):
         self.lang = lang  # Store the language for use in listen()
         self.auto_space = auto_space  # Option to add space after each yielded text
         self._paused = False  # Toggle control: when True, voice recognition is muted
+
+        # AI enhancement settings
+        self.ai_service = ai_service  # AIService instance for text refinement
+        self.ai_buffer_mode = ai_buffer_mode  # "realtime", "sentence", or "paragraph"
+        self.ai_buffer_size = ai_buffer_size  # Max characters before forcing AI refinement
+        self._ai_buffer = []  # Buffer for accumulating text before AI refinement
+        self._ai_buffer_chars = 0  # Character count in buffer
 
         # Find the model using search paths
         model_path = self._find_model(lang)
@@ -233,7 +243,22 @@ class Recognizer:
                 # Only add space if not a single punctuation or edit command
                 if self.auto_space and final_text not in punctuation_map.values() and final_text not in edit_map.values():
                     final_text += " "
-                yield final_text
+
+                # AI enhancement mode: buffer and refine
+                if self.ai_service:
+                    self._add_to_ai_buffer(final_text)
+
+                    # Check if we should flush the buffer
+                    if self._should_flush_ai_buffer(final_text):
+                        refined_text = self._flush_ai_buffer()
+                        if refined_text:
+                            # Add space after AI-refined text if auto_space is enabled
+                            if self.auto_space and not refined_text.endswith(" "):
+                                refined_text += " "
+                            yield refined_text
+                else:
+                    # No AI: yield text immediately (original behavior)
+                    yield final_text
 
     def pause(self):
         """
@@ -258,7 +283,87 @@ class Recognizer:
         """
         return self._paused
 
+    def _should_flush_ai_buffer(self, new_text: str) -> bool:
+        """
+        Determine if AI buffer should be flushed based on buffer mode.
+
+        Args:
+            new_text: Text just added to buffer
+
+        Returns:
+            True if buffer should be sent to AI, False otherwise
+        """
+        if not self.ai_service:
+            return False
+
+        # Realtime mode: flush immediately
+        if self.ai_buffer_mode == "realtime":
+            return True
+
+        # Sentence mode: flush on sentence-ending punctuation
+        if self.ai_buffer_mode == "sentence":
+            sentence_enders = ['.', '!', '?', '。', '！', '？']
+            if any(new_text.strip().endswith(ender) for ender in sentence_enders):
+                return True
+
+        # Paragraph mode: flush on paragraph breaks
+        if self.ai_buffer_mode == "paragraph":
+            if '\n\n' in new_text:
+                return True
+
+        # Size-based flushing: buffer too large
+        if self._ai_buffer_chars >= self.ai_buffer_size:
+            return True
+
+        return False
+
+    def _flush_ai_buffer(self):
+        """
+        Send buffered text to AI for refinement and return result.
+
+        Returns:
+            Refined text from AI, or buffered text if AI fails
+        """
+        if not self._ai_buffer:
+            return ""
+
+        # Combine buffer into single text
+        raw_text = "".join(self._ai_buffer)
+
+        # Clear buffer
+        self._ai_buffer.clear()
+        self._ai_buffer_chars = 0
+
+        # Refine through AI if available
+        if self.ai_service:
+            try:
+                print(f"[AI] Refining: {raw_text[:50]}...")
+                refined_text = self.ai_service.refine_transcription(raw_text)
+                print(f"[AI] Result: {refined_text[:50]}...")
+                return refined_text
+            except Exception as e:
+                print(f"[AI] Refinement failed: {e}, using raw text")
+                return raw_text
+        else:
+            return raw_text
+
+    def _add_to_ai_buffer(self, text: str):
+        """
+        Add text to AI buffer.
+
+        Args:
+            text: Text to add to buffer
+        """
+        self._ai_buffer.append(text)
+        self._ai_buffer_chars += len(text)
+
     def close(self):
+        # Flush any remaining AI buffer before closing
+        if self._ai_buffer:
+            refined = self._flush_ai_buffer()
+            if refined:
+                print(f"[Final AI flush]: {refined}")
+
         self.stream.stop_stream()
         self.stream.close()
         self.p.terminate()

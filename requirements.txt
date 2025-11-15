@@ -10,6 +10,10 @@ pynput>=1.7.6           # Global hotkey support
 pystray>=0.19.5         # System tray icon
 Pillow>=10.0.0          # Icon generation for tray
 
+# AI enhancement (optional)
+google-generativeai>=0.3.0  # Gemini AI support
+openai>=1.0.0               # OpenAI GPT support
+
 # Future hardware support (optional)
 # evdev                 # USB button devices (Linux)
 # python-rtmidi         # MIDI controller support

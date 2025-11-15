@@ -25,7 +25,35 @@ Termivox is a Linux-based voice recognition system that transforms your speech i
 - **Edit commands** - "new line", "tab", "new paragraph"
 - **System commands** - "copy", "paste", "click", "scroll up/down"
 
-### 🎛️ Toggle Control (NEW!)
+### 🤖 AI Enhancement (NEW!)
+Transform raw speech into natural, fluent text with AI-powered refinement:
+
+- **Multi-provider support** - Google Gemini or OpenAI GPT
+- **Intelligent understanding** - Handles natural speech patterns, hesitations, mixed languages
+- **Multilingual mastery** - Perfect French/English detection and grammar
+- **Smart punctuation** - Voice commands applied intelligently
+- **Context preservation** - Maintains your intent and style
+- **Buffering modes** - Realtime, sentence, or paragraph-based refinement
+
+**How it works:**
+```
+Your speech → Vosk transcription → AI refinement → Perfect text output
+```
+
+The AI understands:
+- Natural speaking rhythm (pauses, "euh", "um")
+- Mixed French/English in same sentence
+- Technical terms preservation (Termivox, toggle, etc.)
+- Voice punctuation commands ("comma", "virgule", "period")
+
+**Example transformations:**
+```
+🎤 "ok là j'suis dans le métro euh attends... oui bref fais un paragraphe pour dire que Termivox fonctionne parfaitement virgule et que je vais l'utiliser pour écrire mes notes"
+
+✨ "Termivox fonctionne parfaitement, et je vais l'utiliser pour écrire mes notes."
+```
+
+### 🎛️ Toggle Control
 Control voice recognition ON/OFF with multiple interfaces:
 
 #### ⌨️ **Global Hotkey**
@@ -90,7 +118,18 @@ sudo apt install python3-pyaudio xdotool sox portaudio19-dev -y
    python download_model.py
    ```
 
-5. **Run Termivox:**
+5. **[Optional] Setup AI Enhancement:**
+   ```bash
+   # Copy environment template
+   cp .env.example .env
+
+   # Edit .env and add your API key (choose one):
+   # For Gemini: Get key at https://makersuite.google.com/app/apikey
+   # For OpenAI: Get key at https://platform.openai.com/api-keys
+   nano .env
+   ```
+
+6. **Run Termivox:**
    ```bash
    ./run.sh
    ```
@@ -208,8 +247,33 @@ Edit `config/settings.json` to customize behavior:
   "voice": {
     "language": "en",             // Default language
     "auto_space": true            // Auto-add spaces
+  },
+  "ai": {
+    "enabled": true,              // Enable AI enhancement
+    "provider": "gemini",         // "gemini" or "openai"
+    "model": null,                // null = use default model
+    "buffer_mode": "sentence",    // "realtime", "sentence", "paragraph"
+    "buffer_size": 50             // Max characters before forcing refinement
   }
 }
+```
+
+### AI Configuration Options
+
+**Providers:**
+- `"gemini"` - Google Gemini (default: gemini-2.0-flash-exp)
+- `"openai"` - OpenAI GPT (default: gpt-4o-mini)
+
+**Buffer Modes:**
+- `"realtime"` - Refine every phrase immediately (slower, most accurate)
+- `"sentence"` - Wait for sentence completion (balanced)
+- `"paragraph"` - Wait for paragraph breaks (faster, less frequent)
+
+**Environment Variables:**
+```bash
+# In .env file
+GEMINI_API_KEY=your_gemini_key_here
+OPENAI_API_KEY=your_openai_key_here
 ```
 
 **Custom Hotkey Examples:**
@@ -229,6 +293,9 @@ termivox/
 │   ├── voice/
 │   │   ├── recognizer.py          # Vosk voice recognition engine
 │   │   └── __init__.py
+│   ├── ai/                        # AI enhancement layer (NEW!)
+│   │   ├── ai_service.py          # Multi-provider AI abstraction
+│   │   └── __init__.py
 │   ├── bridge/
 │   │   ├── xdotool_bridge.py      # System command executor
 │   │   └── __init__.py
@@ -246,6 +313,7 @@ termivox/
 │   └── settings.json              # User configuration
 ├── voice_models/                  # Vosk language models
 │   └── vosk-model-small-en-us-0.15/
+├── .env.example                   # API key template (NEW!)
 ├── requirements.txt               # Python dependencies
 ├── run.sh                         # Launch script
 ├── download_model.py              # Model downloader
@@ -264,6 +332,8 @@ termivox/
 - `pystray` - System tray icon
 - `Pillow` - Icon generation
 - `xdotool` - System command execution
+- `google-generativeai` - Gemini AI (optional)
+- `openai` - OpenAI GPT (optional)
 
 **System Packages:**
 - `python3-pyaudio` - PyAudio bindings
@@ -383,14 +453,17 @@ MIT License - See LICENSE file for details
 
 ## 🔮 Roadmap
 
+- [x] AI-powered transcription enhancement (Gemini, OpenAI)
+- [x] Multilingual AI understanding (French/English)
 - [ ] Voice command macros
 - [ ] Custom wake word support
 - [ ] GUI settings editor
 - [ ] Hardware button integration (foot pedal, MIDI)
 - [ ] Audio feedback options
-- [ ] Additional language models
+- [ ] Additional language models (Spanish, German, etc.)
 - [ ] Plugin system for custom commands
 - [ ] Cloud sync for settings (optional)
+- [ ] Real-time AI streaming (word-by-word refinement)
 
 ---
 

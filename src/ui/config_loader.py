@@ -48,6 +48,13 @@ class ConfigLoader:
             "language": "en",
             "auto_space": True
         },
+        "ai": {
+            "enabled": False,
+            "provider": "gemini",
+            "model": None,
+            "buffer_mode": "sentence",
+            "buffer_size": 50
+        },
         "audio_feedback": False
     }
 
