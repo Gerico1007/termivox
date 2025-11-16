@@ -51,6 +51,9 @@ coverage.xml
 # Vosk models (large files)
 *.zip
 
+# Environment variables (API keys)
+.env
+
 # IDE
 .vscode/
 .idea/

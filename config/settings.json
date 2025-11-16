@@ -29,5 +29,12 @@
     "language": "en",
     "auto_space": true
   },
+  "ai": {
+    "enabled": true,
+    "provider": "gemini",
+    "model": null,
+    "buffer_mode": "sentence",
+    "buffer_size": 50
+  },
   "audio_feedback": false
 }
