@@ -16,6 +16,7 @@ import sys
 import argparse
 import threading
 import time
+from dotenv import load_dotenv
 from termivox.voice.recognizer import Recognizer
 from termivox.bridge.xdotool_bridge import XdotoolBridge
 from termivox.ui.toggle_controller import ToggleController
@@ -48,6 +49,9 @@ def voice_recognition_loop(recognizer, xdotool_bridge):
 
 
 def main():
+    # Load environment variables from .env file
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Termivox - Voice Recognition with Toggle Control"
     )

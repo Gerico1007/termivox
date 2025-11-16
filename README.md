@@ -94,7 +94,31 @@ Control voice recognition ON/OFF with multiple interfaces:
 sudo apt install python3-pyaudio xdotool sox portaudio19-dev -y
 ```
 
-### Setup
+### Quick Install (Recommended)
+
+**Using pipx (isolated installation):**
+```bash
+# Install pipx if needed
+sudo apt install pipx
+pipx ensurepath
+
+# Install Termivox (includes AI support)
+pipx install termivox
+
+# Run first-time setup
+termivox init
+```
+
+**Using pip (global/venv installation):**
+```bash
+# Install Termivox (includes AI support)
+pip install termivox
+
+# Run first-time setup
+termivox init
+```
+
+### From Source (Development)
 
 1. **Clone the repository:**
    ```bash
@@ -108,31 +132,90 @@ sudo apt install python3-pyaudio xdotool sox portaudio19-dev -y
    source termivox-env/bin/activate
    ```
 
-3. **Install Python dependencies:**
+3. **Install in development mode:**
    ```bash
-   pip install -r requirements.txt
+   # Install with all dependencies (includes AI support)
+   pip install -e .
    ```
 
-4. **Download voice model** (if not already present):
+4. **Run first-time setup:**
    ```bash
-   python download_model.py
+   termivox init
    ```
 
-5. **[Optional] Setup AI Enhancement:**
-   ```bash
-   # Copy environment template
-   cp .env.example .env
+### First-Time Setup Wizard
 
-   # Edit .env and add your API key (choose one):
-   # For Gemini: Get key at https://makersuite.google.com/app/apikey
-   # For OpenAI: Get key at https://platform.openai.com/api-keys
-   nano .env
-   ```
+The `termivox init` command provides an interactive setup wizard that:
 
-6. **Run Termivox:**
-   ```bash
-   ./run.sh
-   ```
+1. ✅ Checks system dependencies
+2. 🌍 Lets you choose language (English/French)
+3. 📥 Downloads voice recognition model
+4. 🤖 Optionally configures AI enhancement
+   - Choose provider (Gemini/OpenAI)
+   - Add API key
+5. 📝 Creates configuration files
+
+**Example:**
+```bash
+$ termivox init
+
+============================================================
+🎤 Termivox - First-Time Setup Wizard
+============================================================
+
+Welcome to Termivox!
+This wizard will help you set up voice recognition on your system.
+
+📦 Checking dependencies...
+✓ All dependencies found
+
+🌍 Choose voice recognition language:
+  → 1. English (en)
+    2. French (fr)
+
+Choice [1-2] (default: 1): 1
+
+📥 Downloading voice model (en)...
+✓ Voice model downloaded successfully
+
+🤖 AI Enhancement Setup
+
+AI enhancement refines your voice transcription:
+  • Corrects grammar naturally
+  • Handles bilingual input (French/English)
+  • Removes filler words
+  • Processes voice commands
+
+Enable AI enhancement? [Y/n]: y
+
+Choose AI provider:
+  → 1. Google Gemini (recommended, free tier available)
+    2. OpenAI GPT (requires paid account)
+    3. Skip for now
+
+Choice [1-3] (default: 1): 1
+
+📝 GEMINI API Key
+Get your API key at: https://makersuite.google.com/app/apikey
+
+Enter your GEMINI API key: AIza...
+
+✓ Created .env file
+✓ Created config file
+
+============================================================
+✅ Setup Complete!
+============================================================
+
+Next steps:
+  1. Run: termivox
+  2. Press Ctrl+Alt+V to toggle voice recognition
+  3. Speak naturally - your words will be typed!
+
+🤖 AI Enhancement: GEMINI (enabled)
+
+For help: termivox --help
+```
 
 ---
 
@@ -140,21 +223,41 @@ sudo apt install python3-pyaudio xdotool sox portaudio19-dev -y
 
 ### Quick Start
 
-**Launch with toggle control:**
+**After installation, simply run:**
 ```bash
-./run.sh
+termivox
 ```
 
-**Original mode (no toggle):**
+### CLI Commands
+
+**First-time setup:**
 ```bash
-source termivox-env/bin/activate
-python src/main.py --no-toggle
+termivox init                    # Interactive setup wizard
 ```
 
-**Test voice recognition only:**
+**Normal operation:**
+```bash
+termivox                         # Run with default settings
+termivox --lang fr               # Use French
+termivox --no-toggle             # Disable toggle (always-on mode)
+```
+
+**AI configuration:**
+```bash
+termivox --ai                    # Configure AI enhancement
+```
+
+**Help and version:**
+```bash
+termivox --help                  # Show help
+termivox --version               # Show version
+```
+
+**From source (development):**
 ```bash
 source termivox-env/bin/activate
-python src/test_voice_script.py --lang en
+python src/cli.py               # Main entry point
+python src/cli.py init          # Run setup wizard
 ```
 
 ### Toggle Control

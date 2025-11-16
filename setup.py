@@ -16,7 +16,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="termivox",
-    version="0.1.2",
+    version="0.1.3",
     author="Gerico",
     author_email="gerico@jgwill.com",
     description="Voice Recognition Bridge for Linux - Speak naturally, control your system, type hands-free",
@@ -29,7 +29,7 @@ setup(
         "Source Code": "https://github.com/Gerico1007/termivox",
     },
     package_dir={"termivox": "src"},
-    packages=["termivox", "termivox.voice", "termivox.bridge", "termivox.ui", "termivox.utils"],
+    packages=["termivox", "termivox.voice", "termivox.bridge", "termivox.ui", "termivox.utils", "termivox.ai"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop",
@@ -55,6 +55,9 @@ setup(
         "pystray>=0.19.5",
         "Pillow>=10.0.0",
         "speechrecognition>=3.10.0",
+        "python-dotenv>=1.0.0",
+        "google-generativeai>=0.3.0",
+        "openai>=1.0.0",
     ],
     extras_require={
         "dev": [
@@ -65,7 +68,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "termivox=termivox.main:main",
+            "termivox=termivox.cli:main_cli",
             "termivox-test=termivox.test_voice_script:main",
             "termivox-download-model=termivox.download_model:main",
         ],

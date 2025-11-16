@@ -4,13 +4,14 @@ xdotool
 pyaudio
 numpy
 speechrecognition
+python-dotenv>=1.0.0    # Environment variable loading
 
 # Toggle control interfaces
 pynput>=1.7.6           # Global hotkey support
 pystray>=0.19.5         # System tray icon
 Pillow>=10.0.0          # Icon generation for tray
 
-# AI enhancement (optional)
+# AI enhancement (included, activated via config)
 google-generativeai>=0.3.0  # Gemini AI support
 openai>=1.0.0               # OpenAI GPT support
 
