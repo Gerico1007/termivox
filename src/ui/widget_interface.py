@@ -14,6 +14,7 @@ from tkinter import ttk
 from typing import Optional
 import threading
 from .toggle_controller import ToggleState
+from ..i18n import get_string
 
 
 class WidgetInterface:
@@ -34,7 +35,8 @@ class WidgetInterface:
         controller,
         position=(100, 100),
         size=(200, 100),
-        always_on_top=True
+        always_on_top=True,
+        language="en"
     ):
         """
         Initialize widget interface.
@@ -44,11 +46,13 @@ class WidgetInterface:
             position: (x, y) window position
             size: (width, height) window size
             always_on_top: Keep window above other windows
+            language: Language code ('en' or 'fr')
         """
         self.controller = controller
         self.position = position
         self.size = size
         self.always_on_top = always_on_top
+        self.language = language
 
         self._root: Optional[tk.Tk] = None
         self._status_label: Optional[tk.Label] = None
@@ -86,7 +90,7 @@ class WidgetInterface:
 
         title_label = tk.Label(
             title_frame,
-            text="TERMIVOX",
+            text=get_string(self.language, "window_title"),
             bg='#1a1a1a',
             fg='#888888',
             font=('Helvetica', 8, 'normal'),
@@ -187,7 +191,7 @@ class WidgetInterface:
         if state == ToggleState.ACTIVE:
             # Minimal green theme for ACTIVE
             self._toggle_button.config(
-                text="LISTENING",
+                text=get_string(self.language, "status_listening"),
                 bg="#27ae60",  # Professional green
                 activebackground="#2ecc71",
                 fg="#ffffff"
@@ -198,7 +202,7 @@ class WidgetInterface:
         else:
             # Minimal red theme for PAUSED
             self._toggle_button.config(
-                text="MUTED",
+                text=get_string(self.language, "status_muted"),
                 bg="#555555",  # Neutral gray
                 activebackground="#666666",
                 fg="#999999"

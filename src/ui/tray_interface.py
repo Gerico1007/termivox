@@ -15,6 +15,7 @@ from PIL import Image, ImageDraw
 from typing import Optional
 import threading
 from .toggle_controller import ToggleState
+from ..i18n import get_string
 
 
 class TrayInterface:
@@ -29,14 +30,16 @@ class TrayInterface:
         tray.start()  # Runs in background, blocks until exit
     """
 
-    def __init__(self, controller):
+    def __init__(self, controller, language="en"):
         """
         Initialize tray icon interface.
 
         Args:
             controller: ToggleController instance
+            language: Language code ('en' or 'fr')
         """
         self.controller = controller
+        self.language = language
         self._icon: Optional[pystray.Icon] = None
         self._running = False
 
@@ -89,10 +92,10 @@ class TrayInterface:
 
         if state == ToggleState.ACTIVE:
             self._icon.icon = self._create_icon('green')
-            self._icon.title = "Termivox - ACTIVE (listening)"
+            self._icon.title = get_string(self.language, "tray_tooltip_active")
         else:
             self._icon.icon = self._create_icon('red')
-            self._icon.title = "Termivox - PAUSED (muted)"
+            self._icon.title = get_string(self.language, "tray_tooltip_paused")
 
     def _toggle_action(self, icon, item):
         """
@@ -116,24 +119,27 @@ class TrayInterface:
             print("[Tray] Already running")
             return
 
-        # Create menu
+        # Create menu with translated items
         menu = pystray.Menu(
             pystray.MenuItem(
-                "Toggle Voice Recognition",
+                get_string(self.language, "tray_menu_toggle"),
                 self._toggle_action,
                 default=True
             ),
-            pystray.MenuItem("Exit", self._exit_action)
+            pystray.MenuItem(
+                get_string(self.language, "tray_menu_exit"),
+                self._exit_action
+            )
         )
 
         # Get initial state
         initial_state = self.controller.get_state()
         if initial_state == ToggleState.ACTIVE:
             icon_image = self._create_icon('green')
-            title = "Termivox - ACTIVE (listening)"
+            title = get_string(self.language, "tray_tooltip_active")
         else:
             icon_image = self._create_icon('red')
-            title = "Termivox - PAUSED (muted)"
+            title = get_string(self.language, "tray_tooltip_paused")
 
         # Create icon
         self._icon = pystray.Icon(
