@@ -168,7 +168,7 @@ def main():
     # System tray interface
     if config['interfaces']['tray']['enabled']:
         try:
-            tray = TrayInterface(controller)
+            tray = TrayInterface(controller, language=lang)
             # Start tray in background thread (it will run its own loop)
             tray_thread = threading.Thread(target=tray.start, daemon=True)
             tray_thread.start()
@@ -185,7 +185,8 @@ def main():
                 controller,
                 position=(widget_config['position']['x'], widget_config['position']['y']),
                 size=(widget_config['size']['width'], widget_config['size']['height']),
-                always_on_top=widget_config['always_on_top']
+                always_on_top=widget_config['always_on_top'],
+                language=lang
             )
             # Start widget in background thread
             widget_thread = threading.Thread(target=widget.start, daemon=True)
